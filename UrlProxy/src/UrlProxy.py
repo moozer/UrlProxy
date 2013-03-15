@@ -34,16 +34,26 @@ def ProcessRedirect():
 def Stream():
     ''' reads and streams the data from the URL in chunks (as opposed to everything at once '''
     
-    def ReadChunks( req, chunk_size = 1000 ):
+    def ReadChunks( req, chunk_size = 1000, filterfct=None ):
         ''' generator the returns the chunks '''
         for data in req.iter_content(chunk_size=chunk_size, decode_unicode=False):
             time.sleep(0.5) # insert a sleep to make effect obvious
-            yield data
-    
-    URL = request.args['urltoget']
-    chunk_size = 1000 # a random size, could be a parameter.
-    
+            if not filterfct:
+                yield data
+            else:
+                yield filterfct( data )
+
     try:
+    
+        URL = request.args['urltoget']
+        chunk_size = 1000 # a random size, could be a parameter.
+    
+        filter = request.args['filter']
+        if filter == 'none': 
+            filterfct = None
+        else:
+            raise ValueError( "Bad filtername '%s'"%filter)
+    
         r = requests.get(URL, stream=True)
         return Response(ReadChunks(r, chunk_size), mimetype=r.headers['content-type'])
     
