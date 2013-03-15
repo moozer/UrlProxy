@@ -11,13 +11,14 @@ Using
 
 '''
 
-from flask import Flask
+from flask import Flask, Response
 from flask.templating import render_template
 from flask.helpers import url_for, send_from_directory
 from flask.globals import request
 import requests
 from werkzeug.utils import redirect
 import werkzeug
+import time
 app = Flask(__name__)
 
 @app.route("/")
@@ -31,20 +32,21 @@ def ProcessRedirect():
 
 @app.route("/Stream")
 def Stream():
+    ''' reads and streams the data from the URL in chunks (as opposed to everything at once '''
+    
+    def ReadChunks( req, chunk_size = 1000 ):
+        ''' generator the returns the chunks '''
+        for data in req.iter_content(chunk_size=chunk_size, decode_unicode=False):
+            time.sleep(0.5) # insert a sleep to make effect obvious
+            yield data
+    
     URL = request.args['urltoget']
     chunk_size = 1000 # a random size, could be a parameter.
     
     try:
         r = requests.get(URL, stream=True)
-        print r.status_code
-        print r.headers['content-type']
-        
-        cno = 0
-        for data in r.iter_content(chunk_size=chunk_size, decode_unicode=False):
-            print "chunk #%d: %s"%(cno, data)
-            cno += 1
-
-        return "URL: %s\nData received: %d chunks of around %d bytes"%(URL, cno, chunk_size )
+        return Response(ReadChunks(r, chunk_size), mimetype=r.headers['content-type'])
+    
     except Exception, e:
         return "Bad stuff happened while fetching %s (%s)"%(URL, e)
 
