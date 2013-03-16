@@ -19,6 +19,7 @@ import requests
 from werkzeug.utils import redirect
 import werkzeug
 import time
+import subprocess
 app = Flask(__name__)
 
 @app.route("/")
@@ -43,19 +44,32 @@ def Stream():
             else:
                 yield filterfct( data )
 
+    def Rot13Filter( data ):
+        ''' We are doing a rot13 call for every chunk.
+        Alternatively we could do it once per connection, it might be faster for small chunk sizes.
+        '''
+        proc = subprocess.Popen(['rot13/rot13.bin'],
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                )
+        stdout_value = proc.communicate( data )[0]
+        return stdout_value
+
     try:
     
         URL = request.args['urltoget']
         chunk_size = 1000 # a random size, could be a parameter.
     
-        filter = request.args['filter']
-        if filter == 'none': 
+        filter_arg = request.args['filter']
+        if filter_arg == 'none': 
             filterfct = None
+        elif filter_arg == 'rot13': 
+            filterfct = Rot13Filter
         else:
             raise ValueError( "Bad filtername '%s'"%filter)
     
         r = requests.get(URL, stream=True)
-        return Response(ReadChunks(r, chunk_size), mimetype=r.headers['content-type'])
+        return Response(ReadChunks(r, chunk_size, filterfct), mimetype=r.headers['content-type'])
     
     except Exception, e:
         return "Bad stuff happened while fetching %s (%s)"%(URL, e)
