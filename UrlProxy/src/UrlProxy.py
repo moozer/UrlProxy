@@ -7,7 +7,8 @@ Using
 - flask httpd: http://flask.pocoo.org/
 - requests: http://docs.python-requests.org/en/latest/
 -- Stock debian unstable version is not new enough. 
--- Get version 1.10 from experimental: http://packages.debian.org/experimental/all/python-requests/download
+-- Get version 1.10 from experimental: 
+-- http://packages.debian.org/experimental/all/python-requests/download
 
 '''
 
@@ -20,7 +21,34 @@ from werkzeug.utils import redirect
 import werkzeug
 import time
 import subprocess
+from functools import wraps
 app = Flask(__name__)
+
+# --- authentication part
+# from http://flask.pocoo.org/snippets/8/
+def check_auth(username, password):
+    """This function is called to check if a username /
+    password combination is valid.
+    """
+    return username == 'admin' and password == 'secret'
+
+def authenticate():
+    """Sends a 401 response that enables basic auth"""
+    return Response(
+    'Could not verify your access level for that URL.\n'
+    'You have to login with proper credentials. Try user: admin and password: secret', 401,
+    {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated    
+
+# - end of authentication part
 
 @app.route("/")
 def index():
@@ -32,6 +60,7 @@ def ProcessRedirect():
     return redirect(URL)
 
 @app.route("/Stream")
+@requires_auth
 def Stream():
     ''' reads and streams the data from the URL in chunks (as opposed to everything at once '''
     
@@ -79,7 +108,6 @@ def Stream():
     except Exception, e:
         return "Bad stuff happened while fetching %s (%s)"%(URL, e)
 
-    
 
 if __name__ == "__main__":
     app.run()
