@@ -67,7 +67,8 @@ def Stream():
     def ReadChunks( req, chunk_size = 1000, filterfct=None ):
         ''' generator the returns the chunks '''
         for data in req.iter_content(chunk_size=chunk_size, decode_unicode=False):
-            time.sleep(0.5) # insert a sleep to make effect obvious
+            # insert a sleep to make effect obvious
+            #time.sleep(0.5)
             if not filterfct:
                 yield data
             else:
@@ -110,4 +111,4 @@ def Stream():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='0.0.0.0')
