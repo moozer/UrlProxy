@@ -55,6 +55,9 @@ def Stream():
         stdout_value = proc.communicate( data )[0]
         return stdout_value
 
+    def DoubleRot13Filter( data ):
+        return Rot13Filter(Rot13Filter(data))
+
     try:
     
         URL = request.args['urltoget']
@@ -65,6 +68,8 @@ def Stream():
             filterfct = None
         elif filter_arg == 'rot13': 
             filterfct = Rot13Filter
+        elif filter_arg == 'drot13': 
+            filterfct = DoubleRot13Filter
         else:
             raise ValueError( "Bad filtername '%s'"%filter)
     
